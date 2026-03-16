@@ -1,10 +1,31 @@
+/**
+ * 工具函数模块
+ * 提供字体定义、CSS 处理等通用工具函数
+ */
+
+/**
+ * 衬线字体
+ */
 export const serif = "Georgia, Cambria, 'Noto Serif', 'Times New Roman', serif";
+
+/**
+ * 无衬线字体
+ */
 export const sansSerif =
     "system-ui, 'Apple Color Emoji', 'Segoe UI', 'Segoe UI Symbol', 'Noto Sans', 'Roboto', sans-serif";
+
+/**
+ * 等宽字体
+ */
 export const monospace =
     "Menlo, Monaco, Consolas, 'Liberation Mono', 'Roboto Mono', 'Courier New', 'Microsoft YaHei', monospace";
 
-// 工具函数：兼容 Eager (string) 和 Lazy (() => Promise<string>) 两种模式
+/**
+ * 归一化 CSS 加载器
+ * 兼容 Eager (string) 和 Lazy (() => Promise<string>) 两种模式
+ * @param loaderOrContent CSS 内容字符串或加载函数
+ * @returns 标准化的加载函数
+ */
 export function normalizeCssLoader(loaderOrContent: any): () => Promise<string> {
     if (typeof loaderOrContent === "string") {
         // Eager 模式：直接返回包裹了字符串的 Promise
@@ -14,25 +35,38 @@ export function normalizeCssLoader(loaderOrContent: any): () => Promise<string> 
     return loaderOrContent as () => Promise<string>;
 }
 
-// 辅助函数：把 "{width=100 height=200}" 字符串转成 Map
+/**
+ * 将属性字符串转换为 Map
+ * 例如："{width=100 height=200}" 转成 Map { width: "100", height: "200" }
+ * @param str 属性字符串
+ * @returns 转换后的 Map
+ */
 export function stringToMap(str: string): Map<string, string> {
     const map = new Map<string, string>();
+    // 按空格分割属性对
     str.split(/\s+/).forEach((pair) => {
+        // 按等号分割键值
         const [key, value] = pair.split("=");
         if (key && value) {
-            map.set(key, value.replace(/^["']|["']$/g, "")); // 去掉引号
+            // 去掉引号
+            map.set(key, value.replace(/^["']|["']$/g, ""));
         }
     });
     return map;
 }
 
+/**
+ * 替换 CSS 变量
+ * @param css CSS 字符串
+ * @returns 替换变量后的 CSS 字符串
+ */
 export function replaceCSSVariables(css: string): string {
     // 正则表达式用于匹配变量定义
     const variablePattern: RegExp = /--([a-zA-Z0-9\-]+):\s*([^;()]*\((?:[^()]*|\([^()]*\))*\)[^;()]*|[^;]+);/g;
     // 正则表达式用于匹配使用 var() 的地方
     const varPattern: RegExp = /var\(--([a-zA-Z0-9\-]+)\)/g;
 
-    // 使用 Record<string, string> 定义键值对对象
+    // 存储 CSS 变量
     const cssVariables: Record<string, string> = {};
 
     // 1. 提取变量定义并存入字典
@@ -54,7 +88,13 @@ export function replaceCSSVariables(css: string): string {
         cssVariables["monospace-font"] = monospace;
     }
 
-    // 2. 递归解析 var() 引用为字典中对应的值
+    /**
+     * 递归解析变量引用
+     * @param value 变量值
+     * @param variables 变量字典
+     * @param resolved 已解析的变量集合，用于防止循环依赖
+     * @returns 解析后的值
+     */
     function resolveVariable(
         value: string,
         variables: Record<string, string>,
@@ -102,6 +142,15 @@ export function replaceCSSVariables(css: string): string {
     return modifiedCSS.replace(/:root\s*\{[^}]*\}/g, "");
 }
 
+/**
+ * 解析 CSS 内容
+ * @param directCss 直接传入的 CSS
+ * @param id 主题 ID
+ * @param finder 精确查找函数
+ * @param fallbackFinder 模糊查找函数
+ * @param errorMessage 错误信息
+ * @returns 处理后的 CSS 字符串
+ */
 export async function resolveCssContent<T extends { getCss: () => Promise<string> }>(
     directCss: string | undefined, // 直接传入的 CSS
     id: string, // ID
@@ -130,12 +179,20 @@ export async function resolveCssContent<T extends { getCss: () => Promise<string
     return replaceCSSVariables(rawCss);
 }
 
+/**
+ * CSS 源类型
+ */
 export type CssSource =
-    | { type: "inline"; css: string }
-    | { type: "asset"; loader: () => Promise<string> }
-    // | { type: "file"; path: string }
-    | { type: "url"; url: string };
+    | { type: "inline"; css: string } // 内联 CSS
+    | { type: "asset"; loader: () => Promise<string> } // 资源加载器
+    // | { type: "file"; path: string } // 文件路径
+    | { type: "url"; url: string }; // URL 地址
 
+/**
+ * 根据源类型加载 CSS
+ * @param source CSS 源
+ * @returns 加载的 CSS 字符串
+ */
 export async function loadCssBySource(source: CssSource): Promise<string> {
     switch (source.type) {
         case "inline":

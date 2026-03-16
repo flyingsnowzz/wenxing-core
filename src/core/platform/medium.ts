@@ -1,8 +1,15 @@
 /**
+ * Medium 平台内容处理工具
+ * 用于将文颜渲染的 HTML 转换为 Medium 平台支持的格式
+ */
+
+/**
  * 获取用于发布到 Medium 的 HTML 内容
+ * @param wenyanElement 文颜渲染后的根元素
+ * @returns 处理后的 HTML 字符串
  */
 export function getContentForMedium(wenyanElement: HTMLElement): string {
-    // 1. 处理 Blockquote
+    // 1. 处理 Blockquote（引用块）
     processBlockquotes(wenyanElement);
 
     // 2. 处理代码块 (Pre/Code)
@@ -24,10 +31,12 @@ export function getContentForMedium(wenyanElement: HTMLElement): string {
 
 /**
  * 转换引用块：将 p 标签转换为 span，并添加换行，适应 Medium 格式
+ * @param root 根元素
  */
 function processBlockquotes(root: HTMLElement): void {
     const paragraphs = root.querySelectorAll<HTMLParagraphElement>("blockquote p");
     const doc = root.ownerDocument;
+    
     paragraphs.forEach((p) => {
         const span = doc.createElement("span");
         // 使用 textContent 性能更好，且防止 XSS（虽然这里是克隆节点）
@@ -38,11 +47,13 @@ function processBlockquotes(root: HTMLElement): void {
 
 /**
  * 转换代码块：移除高亮标签，提取语言，保留纯文本
+ * @param root 根元素
  */
 function processCodeBlocks(root: HTMLElement): void {
     const preElements = root.querySelectorAll<HTMLPreElement>("pre");
 
     preElements.forEach((pre) => {
+        // 设置 Medium 代码块属性
         pre.setAttribute("data-code-block-lang", "none");
         pre.setAttribute("data-code-block-mode", "2");
 
@@ -73,6 +84,7 @@ function processCodeBlocks(root: HTMLElement): void {
 
 /**
  * 转换表格：将 HTML 表格转换为 ASCII 字符画
+ * @param root 根元素
  */
 function processTables(root: HTMLElement): void {
     const tables = root.querySelectorAll<HTMLTableElement>("table");
@@ -81,17 +93,21 @@ function processTables(root: HTMLElement): void {
     tables.forEach((t) => {
         const pre = doc.createElement("pre");
         const code = doc.createElement("code");
+        // 将表格转换为 ASCII 字符画
         code.textContent = tableToAsciiArt(t);
 
         pre.appendChild(code);
+        // 设置 Medium 代码块属性
         pre.setAttribute("data-code-block-lang", "none");
         pre.setAttribute("data-code-block-mode", "2");
+        // 替换原表格
         t.replaceWith(pre);
     });
 }
 
 /**
  * 转换公式：还原 MathJax 为 TeX 源码
+ * @param root 根元素
  */
 function processMath(root: HTMLElement): void {
     const mathElements = root.querySelectorAll<HTMLElement>("mjx-container");
@@ -114,6 +130,7 @@ function processMath(root: HTMLElement): void {
 
 /**
  * 递归处理嵌套 UL，转换为 Medium 风格的伪列表
+ * @param ulElement UL 元素
  */
 function transformUl(ulElement: HTMLUListElement): void {
     // 递归处理子 UL
@@ -141,6 +158,8 @@ function transformUl(ulElement: HTMLUListElement): void {
 
 /**
  * 表格转 ASCII 工具
+ * @param table HTML 表格元素
+ * @returns ASCII 表格字符串
  */
 function tableToAsciiArt(table: HTMLTableElement): string {
     const rowsElements = Array.from(table.querySelectorAll("tr"));
@@ -191,6 +210,8 @@ function tableToAsciiArt(table: HTMLTableElement): string {
 
 /**
  * 计算字符串视觉宽度（中文字符算 2，其他算 1）
+ * @param str 字符串
+ * @returns 视觉宽度
  */
 function getStringWidth(str: string): number {
     let width = 0;

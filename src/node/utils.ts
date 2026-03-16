@@ -20,13 +20,21 @@ export async function safeReadJson<T>(file: string, fallback: T): Promise<T> {
 }
 
 export async function safeWriteJson(file: string, data: unknown): Promise<void> {
-    const tmp = file + ".tmp";
-    await fs.writeFile(tmp, JSON.stringify(data ?? {}, null, 2), "utf-8");
-    await fs.rename(tmp, file); // 原子替换
+    try {
+        const tmp = file + ".tmp";
+        await fs.writeFile(tmp, JSON.stringify(data ?? {}, null, 2), "utf-8");
+        await fs.rename(tmp, file); // 原子替换
+    } catch (error) {
+        // 忽略文件写入失败的错误，例如权限不足
+    }
 }
 
 export async function ensureDir(dir: string): Promise<void> {
-    await fs.mkdir(dir, { recursive: true });
+    try {
+        await fs.mkdir(dir, { recursive: true });
+    } catch (error) {
+        // 忽略目录创建失败的错误，例如权限不足
+    }
 }
 
 export function md5FromBuffer(buf: crypto.BinaryLike): string {
